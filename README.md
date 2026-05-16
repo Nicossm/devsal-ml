@@ -1,136 +1,64 @@
-# Proyecto Parcial 1: Análisis de Salarios de Desarrolladores de Software
+# Salary ML Project
 
-## Integrantes
+Prediccion y analisis de salarios de desarrolladores de software.
 
-| Nombre | Rol |
-|--------|-----|
-| Nicolás Osses | Integrante 1 — Setup y Limpieza de Datos |
-| Rolando Paredes | Integrante 2 — Transformación y Pipeline |
-| Belén Toloza | Integrante 3 — Feature Engineering, Visualización y README |
+## Descripcion del proyecto
 
-## Descripción del Proyecto
+Pipeline completo de Machine Learning para predecir y analizar salarios de desarrolladores de software, abarcando desde la preparacion de datos hasta la optimizacion de modelos.
 
-Este proyecto forma parte de la Evaluación Parcial N°1 de la asignatura **Programación para la Ciencia de Datos (SCY1101)** del **Instituto Profesional Duoc UC**.
+### Problema de negocio
 
-El objetivo es aplicar técnicas de manipulación, limpieza y transformación de datos sobre un dataset real de salarios de desarrolladores de software, preparando la información para etapas futuras de modelado con Machine Learning.
+- **Regresion:** predecir el valor exacto del salario anual en USD (`salary_usd`).
+- **Clasificacion binaria:** predecir si un desarrollador supera la mediana del mercado (~130K USD), variable derivada a partir de `salary_usd`.
 
-## Dataset
-
-### Origen
-- **Fuente**: Kaggle — Software Developer Salary Dataset
-- **Tema**: Salarios de desarrolladores de software a nivel mundial
-- **Variable objetivo**: `salary_usd` (salario anual en USD)
-
-### Descripción de las Variables
-
-| Columna | Tipo | Descripción |
-|---------|------|-------------|
-| `experience` | Numérico | Años de experiencia profesional |
-| `country` | Categórico | País de residencia |
-| `education` | Categórico | Nivel educativo más alto |
-| `languages` | Texto | Lenguajes de programación que maneja |
-| `frameworks` | Texto | Frameworks y tecnologías que utiliza |
-| `company_size` | Categórico | Tamaño de la empresa |
-| `salary_usd` | Numérico | Salario anual en USD (variable objetivo) |
-
-### Estado del Dataset Raw
-
-El dataset crudo presentaba las siguientes impurezas que fueron tratadas a lo largo del proyecto:
-
-- **Valores nulos**: presentes en varias columnas, incluyendo pseudonulos como `"missing"`, `"N/A"`, `"unknown"`
-- **Duplicados**: filas completamente repetidas
-- **Outliers**: valores atípicos en `salary_usd` y `experience`
-- **Inconsistencias de formato**: variaciones en nombres de países (ej. `"USA"`, `"US"`, `"United States"`) y niveles educativos
-- **Tipos mezclados**: valores de texto en columnas numéricas
-
-## Estructura del Proyecto
+## Estructura del repositorio
 
 ```
-parcial1/
-├── data/
-│   ├── raw/
-│   │   └── software_developer_salary_raw.csv
-│   ├── processed/
-│   │   └── clean.csv
-│   ├── transformed/
-│   │   └── transformed.csv
-│   └── featured/
-│       └── featured.csv
-├── docs/
-│   └── Evaluación Parcial 1.pdf
-├── notebooks/
-│   ├── 01_limpieza.ipynb
-│   ├── 02_transformacion.ipynb
-│   └── 03_feature_engineering_visualizacion.ipynb
-├── src/
+salary-ml-project/
+├── etl/                   # Pipeline de extraccion, transformacion y carga de datos
+├── notebooks/             # Analisis exploratorio y modelado
+│   ├── 01_exploratory_analysis.ipynb
+│   ├── 02_supervised_modeling.ipynb
+│   ├── 03_model_evaluation.ipynb
+│   ├── 04_hyperparameter_optimization.ipynb
+│   └── 05_final_analysis.ipynb
+├── src/                   # Modulos Python reutilizables
+│   ├── data_preprocessing.py
+│   ├── model_training.py
+│   ├── model_evaluation.py
+│   └── hyperparameter_tuning.py
+├── models/                # Modelos entrenados serializados (joblib)
+├── results/               # Metricas, graficos y reportes
 └── README.md
 ```
 
-## Entorno de Desarrollo
+## Stack tecnologico
 
-### Google Colab
+- Python 3.x
+- scikit-learn
+- pandas
+- numpy
+- matplotlib
+- seaborn
+- joblib
 
-El equipo trabajó en **Google Colab** por las siguientes razones:
+## Como ejecutar
 
-- No requiere instalación local de Python ni librerías, cualquier integrante puede abrir el notebook desde el navegador
-- Permite cargar archivos directamente desde URLs raw de GitHub, lo que facilita la reproducibilidad
-- Al correr en el mismo entorno cloud, los tres integrantes obtenemos los mismos resultados sin diferencias por versiones o sistemas operativos distintos
+1. Clonar el repositorio:
+   ```bash
+   git clone https://github.com/Nicossm/parcial1.git
+   cd parcial1
+   ```
 
-### Librerías utilizadas
+2. Instalar dependencias:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-```
-pandas
-numpy
-scikit-learn
-matplotlib
-seaborn
-```
+3. Ejecutar los notebooks en orden numerico (`01_` a `05_`).
 
-Todas disponibles por defecto en Google Colab, sin necesidad de instalar nada.
+## Integrantes
 
-## Cómo Ejecutar
-
-1. Abrir Google Colab: [colab.research.google.com](https://colab.research.google.com)
-2. Ir a `File → Open notebook → GitHub`
-3. Pegar la URL del repositorio: `https://github.com/Nicossm/parcial1`
-4. Ejecutar los notebooks **en orden**:
-   - `01_limpieza.ipynb`
-   - `02_transformacion.ipynb`
-   - `03_feature_engineering_visualizacion.ipynb`
-
-> Cada notebook carga los datos directamente desde GitHub mediante URL, por lo que no es necesario descargar ningún archivo manualmente.
-
-## Metodología
-
-### 1. Limpieza de Datos — Nicolás Osses
-
-- Unificación de pseudonulos a formato `NaN`
-- Normalización de variables categóricas (`country`, `education`)
-- Eliminación de duplicados
-- Tratamiento de valores imposibles en `experience` y `salary_usd`
-- Imputación de `experience` con mediana
-- Tratamiento de outliers en `salary_usd` mediante capping con IQR
-
-### 2. Transformación y Pipeline — Rolando Paredes
-
-- Escalado de variables numéricas con `StandardScaler`
-- Codificación de variables categóricas con `OneHotEncoder`
-- Construcción de un `Pipeline` con `ColumnTransformer` de scikit-learn
-- Justificación técnica de cada decisión de transformación
-
-### 3. Feature Engineering y Visualización — Belén Toloza
-
-- Creación de nuevas variables derivadas:
-  - `is_high_education`: indica si el desarrollador tiene Masters o PhD
-  - `is_big_company`: indica si trabaja en empresa de más de 1000 empleados
-  - `exp_edu_score`: score combinado de experiencia y nivel educativo
-- Visualizaciones exploratorias con Matplotlib y Seaborn
-- Redacción del README
-
-## Conclusiones
-
-El proceso de limpieza y transformación permitió convertir un dataset crudo con múltiples impurezas en un dataset completamente numérico, sin nulos y listo para ser usado en algoritmos de Machine Learning. Las nuevas variables creadas en la fase de Feature Engineering, especialmente `exp_edu_score`, mostraron mayor correlación con el salario que las variables originales por separado, lo que aporta valor al futuro modelo predictivo.
-
----
-
-*Proyecto académico — Instituto Profesional Duoc UC — SCY1101 Programación para la Ciencia de Datos*
+- [Nombre 1]
+- [Nombre 2]
+- [Nombre 3]
