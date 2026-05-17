@@ -1,0 +1,20 @@
+# Modelos serializados — se regeneran ejecutando los notebooks (02 los crea).
+# Se ignoran para mantener el repo liviano y compatible con el flujo de Colab.
+models/*.joblib
+
+# Cache de Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Entornos virtuales
+venv/
+.venv/
+env/
+
+# Sistema
+.DS_Store
+Thumbs.db

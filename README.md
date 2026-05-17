@@ -1,132 +1,64 @@
-# Proyecto Parcial 1: Análisis de Salarios de Desarrolladores de Software
+# Salary ML Project
 
-## Integrantes
-- [Nombre 1]
-- [Nombre 2]
-- [Nombre 3] (opcional)
+Prediccion y analisis de salarios de desarrolladores de software.
 
-## Descripción del Proyecto
+## Descripcion del proyecto
 
-Este proyecto forma parte de la Evaluación Parcial N°1 de la asignatura **Programación para la Ciencia de Datos (SCY1101)**. El objetivo es aplicar técnicas avanzadas de manipulación, limpieza y transformación de datos, generando insights y preparando la información para etapas posteriores de modelado.
+Pipeline completo de Machine Learning para predecir y analizar salarios de desarrolladores de software, abarcando desde la preparacion de datos hasta la optimizacion de modelos.
 
-## Dataset
+### Problema de negocio
 
-### Origen
-- **Fuente**: Kaggle - Software Developer Salary Dataset
-- **Tema**: Salarios de desarrolladores de software a nivel mundial
-- **Variable objetivo**: `salary_usd` (salario anual en USD)
+- **Regresion:** predecir el valor exacto del salario anual en USD (`salary_usd`).
+- **Clasificacion binaria:** predecir si un desarrollador supera la mediana del mercado (~130K USD), variable derivada a partir de `salary_usd`.
 
-### Descripción de las Variables
-
-| Columna | Tipo | Descripción |
-|---------|------|-------------|
-| `experience` | Numérico | Años de experiencia profesional |
-| `country` | Categórico | País de residencia |
-| `education` | Categórico | Nivel educativo más alto |
-| `languages` | Texto | Lenguajes de programación principales |
-| `frameworks` | Texto | Frameworks utilizados |
-| `company_size` | Categórico | Tamaño de la empresa |
-| `salary_usd` | Numérico | Salario anual en USD (variable objetivo) |
-
-### Estado del Dataset (Raw)
-El dataset "crudo" contiene las siguientes impurezas que serán tratadas:
-- **Valores nulos**: ~7-8% en varias columnas
-- **Duplicados**: ~200 filas duplicadas
-- **Outliers**: Valores atípicos en salario y experiencia
-- **Inconsistencias de formato**: Variaciones en nombres de países y niveles educativos
-- **Tipos mezclados**: Valores de texto en columnas numéricas
-
-## Estructura del Proyecto
+## Estructura del repositorio
 
 ```
-parcial1/
-├── data/
-│   ├── raw/                    # Dataset original (sucio)
-│   └── processed/              # Dataset limpio (resultado)
-├── notebooks/
-│   └── analisis_principal.ipynb
-├── src/
-│   ├── __init__.py
-│   ├── data_cleaning.py        # Funciones de limpieza
-│   ├── transformers.py         # Transformadores custom
-│   └── utils.py                # Utilidades generales
-├── outputs/
-│   └── (gráficos exportados)
-├── docs/
-│   └── informe_tecnico.pdf
-├── PLAN_PARCIAL.md
+salary-ml-project/
+├── etl/                   # Pipeline de extraccion, transformacion y carga de datos
+├── notebooks/             # Analisis exploratorio y modelado
+│   ├── 01_exploratory_analysis.ipynb
+│   ├── 02_supervised_modeling.ipynb
+│   ├── 03_model_evaluation.ipynb
+│   ├── 04_hyperparameter_optimization.ipynb
+│   └── 05_final_analysis.ipynb
+├── src/                   # Modulos Python reutilizables
+│   ├── data_preprocessing.py
+│   ├── model_training.py
+│   ├── model_evaluation.py
+│   └── hyperparameter_tuning.py
+├── models/                # Modelos entrenados serializados (joblib)
+├── results/               # Metricas, graficos y reportes
 └── README.md
 ```
 
-## Entorno de Desarrollo
+## Stack tecnologico
 
-### Justificación
-[Elegir una opción y completar]
+- Python 3.x
+- scikit-learn
+- pandas
+- numpy
+- matplotlib
+- seaborn
+- joblib
 
-**Opción A: Google Colab**
-- Ventaja: No requiere instalación local, fácil colaboración en tiempo real
-- Integración con GitHub: Mediante commits directos desde Colab o descarga/push manual
-
-**Opción B: Jupyter Local**
-- Ventaja: Mayor control del entorno, sin dependencia de internet
-- Integración con GitHub: Mediante git desde terminal
-
-### Requisitos
-```
-python >= 3.8
-pandas
-numpy
-scikit-learn
-matplotlib
-seaborn
-```
-
-## Cómo Ejecutar
+## Como ejecutar
 
 1. Clonar el repositorio:
-```bash
-git clone [URL_DEL_REPOSITORIO]
-cd parcial1
-```
+   ```bash
+   git clone https://github.com/Nicossm/parcial1.git
+   cd parcial1
+   ```
 
 2. Instalar dependencias:
-```bash
-pip install -r requirements.txt
-```
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-3. Ejecutar el notebook:
-```bash
-jupyter notebook notebooks/analisis_principal.ipynb
-```
+3. Ejecutar los notebooks en orden numerico (`01_` a `05_`).
 
-## Metodología
+## Integrantes
 
-### 1. Análisis Exploratorio (EDA)
-- Estadísticas descriptivas
-- Detección de valores nulos y duplicados
-- Identificación de outliers
-- Visualizaciones iniciales
-
-### 2. Limpieza de Datos
-- Tratamiento de valores nulos (imputación/eliminación)
-- Eliminación de duplicados
-- Corrección de outliers
-- Normalización de strings
-
-### 3. Transformación
-- Escalado de variables numéricas (StandardScaler/MinMaxScaler)
-- Codificación de variables categóricas (OneHotEncoder/LabelEncoder)
-- Pipeline de transformación con scikit-learn
-
-### 4. Feature Engineering
-- Creación de nuevas variables derivadas
-- Categorización de variables continuas
-
-## Resultados
-[Completar después del análisis]
-
-## Conclusiones
-[Completar después del análisis]
-
-## Licencia
-Proyecto académico - Universidad [Nombre]
+- [Nombre 1]
+- [Nombre 2]
+- [Nombre 3]
