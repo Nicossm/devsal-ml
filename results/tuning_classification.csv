@@ -1,0 +1,3 @@
+Modelo,method,F1_baseline,F1_tuned,F1_tuned_std,delta,delta_pct,n_candidates,fit_time_s,best_params
+LogisticRegression,GridSearchCV,0.8770980261017897,0.8772528716162723,0.006890635524167978,0.00015484551448263772,0.017654299733273766,12,2.320814609527588,"{'model__C': 1.0, 'model__penalty': 'l2', 'model__solver': 'liblinear'}"
+GradientBoostingClassifier,RandomizedSearchCV,0.8768745186161674,0.8742972441851954,0.009265689308864407,-0.0025772744309719986,-0.29391599097203824,30,769.1232652664185,"{'model__subsample': 1.0, 'model__n_estimators': 300, 'model__min_samples_leaf': 10, 'model__max_depth': 3, 'model__learning_rate': 0.05}"

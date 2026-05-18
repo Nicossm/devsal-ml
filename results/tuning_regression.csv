@@ -1,0 +1,3 @@
+Modelo,method,R2_baseline,R2_tuned,R2_tuned_std,delta,delta_pct,n_candidates,fit_time_s,best_params
+Ridge,GridSearchCV,0.7613323678806033,0.7613323678806033,0.02297055777941085,0.0,0.0,7,0.5743746757507323,{'model__alpha': 1.0}
+GradientBoostingRegressor,RandomizedSearchCV,0.7572513735978063,0.7571342691396372,0.022905001034570438,-0.00011710445816903725,-0.01546441013538975,30,460.5394096374512,"{'model__subsample': 1.0, 'model__n_estimators': 300, 'model__min_samples_leaf': 10, 'model__max_depth': 3, 'model__learning_rate': 0.05}"
