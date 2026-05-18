@@ -1,14 +1,6 @@
-"""Modulo de optimizacion de hiperparametros.
+"""Funciones para correr GridSearchCV / RandomizedSearchCV y comparar resultados pre/post tuning.
 
-Funciones reutilizables para correr ``GridSearchCV`` y
-``RandomizedSearchCV`` sobre pipelines supervisados de sklearn, y para
-construir tablas comparativas pre/post tuning.
-
-Usado por el notebook ``04_hyperparameter_optimization.ipynb``.
-
-La logica de tuning vive aqui para mantener el notebook como capa de
-orquestacion, justificacion de grids y visualizacion -- no de
-implementacion.
+Usado por ``04_hyperparameter_optimization.ipynb``.
 """
 
 from __future__ import annotations
@@ -29,19 +21,7 @@ from sklearn.pipeline import Pipeline
 def _make_splitter(
     stratified: bool, cv: int, random_state: int
 ) -> KFold | StratifiedKFold:
-    """Devuelve el splitter adecuado segun la tarea.
-
-    Para clasificacion se usa ``StratifiedKFold`` para mantener el balance
-    de clases en cada fold; para regresion se usa ``KFold`` con shuffle.
-
-    Args:
-        stratified: ``True`` para clasificacion, ``False`` para regresion.
-        cv: Numero de folds.
-        random_state: Semilla del shuffle.
-
-    Returns:
-        Instancia de ``KFold`` o ``StratifiedKFold`` lista para usar.
-    """
+    """StratifiedKFold si stratified=True (clasificación), KFold con shuffle en caso contrario."""
     if stratified:
         return StratifiedKFold(n_splits=cv, shuffle=True, random_state=random_state)
     return KFold(n_splits=cv, shuffle=True, random_state=random_state)
@@ -58,34 +38,12 @@ def run_grid_search(
     random_state: int = 42,
     verbose: int = 0,
 ) -> dict[str, Any]:
-    """Corre ``GridSearchCV`` sobre un pipeline supervisado.
-
-    Args:
-        pipeline: Pipeline de sklearn (preprocesador + estimador). Las
-            claves de ``param_grid`` deben llevar el prefijo del paso
-            (tipicamente ``"model__"``).
-        param_grid: Diccionario de hiperparametros a explorar
-            exhaustivamente.
-        X: Features de entrenamiento.
-        y: Target (numerico para regresion, binario para clasificacion).
-        cv: Numero de folds.
-        scoring: Metrica de seleccion (ej. ``"r2"``, ``"f1"``).
-        stratified: ``True`` si la tarea es clasificacion; controla el
-            splitter usado en CV.
-        random_state: Semilla del shuffle del splitter.
-        verbose: Nivel de verbosidad de ``GridSearchCV``.
+    """Corre ``GridSearchCV`` sobre un pipeline. Claves de ``param_grid`` con prefijo del paso (ej. ``model__``).
 
     Returns:
-        Dict con claves:
-        - ``method``: ``"GridSearchCV"``.
-        - ``best_estimator``: pipeline reentrenado con los mejores params.
-        - ``best_params``: dict de hiperparametros ganadores.
-        - ``best_score``: score medio de CV del mejor estimador.
-        - ``best_score_std``: desviacion estandar entre folds del ganador.
-        - ``n_candidates``: numero total de combinaciones evaluadas.
-        - ``cv_results``: ``cv_results_`` resumido a DataFrame
-          (ordenado descendente por ``mean_test_score``).
-        - ``fit_time_total``: tiempo total acumulado de ajuste (segundos).
+        Dict con ``method``, ``best_estimator``, ``best_params``, ``best_score``,
+        ``best_score_std``, ``n_candidates``, ``cv_results`` (DataFrame ordenado)
+        y ``fit_time_total`` en segundos.
     """
     splitter = _make_splitter(stratified, cv, random_state)
     search = GridSearchCV(
@@ -130,29 +88,11 @@ def run_randomized_search(
     random_state: int = 42,
     verbose: int = 0,
 ) -> dict[str, Any]:
-    """Corre ``RandomizedSearchCV`` sobre un pipeline supervisado.
-
-    Util cuando el espacio de hiperparametros es grande y un grid
-    exhaustivo seria prohibitivo en tiempo.
-
-    Args:
-        pipeline: Pipeline de sklearn (preprocesador + estimador). Claves
-            de ``param_distributions`` con prefijo del paso (ej. ``"model__"``).
-        param_distributions: Diccionario de hiperparametros a muestrear.
-            Acepta listas (uniforme discreto) o distribuciones de scipy.
-        X: Features de entrenamiento.
-        y: Target.
-        n_iter: Numero de combinaciones muestreadas.
-        cv: Numero de folds.
-        scoring: Metrica de seleccion.
-        stratified: ``True`` para clasificacion.
-        random_state: Semilla -- controla tanto el shuffle del splitter
-            como el muestreo de combinaciones.
-        verbose: Nivel de verbosidad.
+    """Corre ``RandomizedSearchCV`` (acepta listas o distribuciones scipy en ``param_distributions``).
 
     Returns:
-        Mismo formato que ``run_grid_search`` pero con
-        ``method="RandomizedSearchCV"`` y ``n_candidates == n_iter``.
+        Mismo formato que :func:`run_grid_search` pero con ``method="RandomizedSearchCV"``
+        y ``n_candidates == n_iter``.
     """
     splitter = _make_splitter(stratified, cv, random_state)
     search = RandomizedSearchCV(
@@ -192,25 +132,15 @@ def build_tuning_comparison_table(
     baseline_scores: dict[str, float],
     metric_name: str,
 ) -> pd.DataFrame:
-    """Construye una tabla con baseline vs score post-tuning por modelo.
-
-    Args:
-        tuning_results: Mapa ``nombre_modelo -> resultado de
-            run_grid_search/run_randomized_search``.
-        baseline_scores: Mapa ``nombre_modelo -> score baseline``
-            (tipicamente la media de CV del notebook 03 sin tuning).
-        metric_name: Nombre de la metrica (ej. ``"R2"`` o ``"F1"``) para
-            renombrar columnas.
+    """Tabla con baseline vs score post-tuning por modelo, con delta absoluto y porcentual.
 
     Returns:
-        DataFrame con columnas ``method``, ``<metric>_baseline``,
-        ``<metric>_tuned``, ``<metric>_tuned_std``, ``delta``,
-        ``delta_pct``, ``n_candidates``, ``fit_time_s``,
-        ``best_params``. Ordenado por ``delta`` descendente.
+        DataFrame con ``method``, ``<metric>_baseline``, ``<metric>_tuned``,
+        ``<metric>_tuned_std``, ``delta``, ``delta_pct``, ``n_candidates``,
+        ``fit_time_s`` y ``best_params``. Ordenado por ``delta`` desc.
 
     Raises:
-        ValueError: Si las claves de ``tuning_results`` y
-            ``baseline_scores`` no coinciden.
+        ValueError: Si las claves de ``tuning_results`` y ``baseline_scores`` no coinciden.
     """
     if set(tuning_results.keys()) != set(baseline_scores.keys()):
         raise ValueError(
@@ -250,19 +180,7 @@ def export_cv_results_summary(
     tuning_result: dict[str, Any],
     top_n: int = 10,
 ) -> pd.DataFrame:
-    """Extrae las top-N combinaciones de un resultado de tuning.
-
-    Util para reportar en el notebook el espacio de busqueda explorado.
-
-    Args:
-        tuning_result: Salida de ``run_grid_search`` o ``run_randomized_search``.
-        top_n: Numero de filas top por ``mean_test_score``.
-
-    Returns:
-        DataFrame con columnas ``rank_test_score``, ``mean_test_score``,
-        ``std_test_score``, ``mean_train_score``, ``mean_fit_time`` y los
-        parametros (``param_*``).
-    """
+    """Top-N combinaciones del ``cv_results_`` ordenadas por ``mean_test_score``."""
     df = tuning_result["cv_results"].head(top_n).copy()
     param_cols = [c for c in df.columns if c.startswith("param_")]
     keep_cols = (

@@ -1,12 +1,6 @@
-"""Modulo de entrenamiento de modelos supervisados.
+"""Funciones reutilizables para pipelines, entrenamiento y serialización de modelos.
 
-Funciones reutilizables para construir pipelines de scikit-learn,
-entrenar modelos de regresion y clasificacion, calcular metricas y
-serializar los modelos resultantes.
-
-Este modulo es usado por el notebook ``02_supervised_modeling.ipynb``.
-La logica de entrenamiento vive aqui para mantener el notebook como
-una capa de orquestacion y narracion, no de implementacion.
+Usado por ``02_supervised_modeling.ipynb``.
 """
 
 from __future__ import annotations
@@ -45,17 +39,11 @@ EXPECTED_COLUMNS = [
 
 
 def load_data(path: str) -> pd.DataFrame:
-    """Carga el dataset limpio desde disco y valida su esquema.
-
-    Args:
-        path: Ruta al archivo CSV (tipicamente ``etl/data/processed/clean.csv``).
-
-    Returns:
-        DataFrame con las columnas esperadas del dataset limpio.
+    """Carga el CSV limpio y valida que tenga las columnas esperadas.
 
     Raises:
-        FileNotFoundError: Si el archivo no existe en ``path``.
-        ValueError: Si faltan columnas requeridas en el archivo.
+        FileNotFoundError: Archivo no encontrado en ``path``.
+        ValueError: Faltan columnas requeridas.
     """
     try:
         df = pd.read_csv(path)
@@ -77,24 +65,13 @@ def load_data(path: str) -> pd.DataFrame:
 def create_binary_target(
     y_train: pd.Series, y_test: pd.Series
 ) -> tuple[pd.Series, pd.Series, float]:
-    """Construye la variable binaria ``salary_above_median`` sin leakage.
-
-    El umbral se calcula exclusivamente sobre ``y_train`` (mediana de train)
-    y luego se aplica tanto a train como a test. Asi se evita filtrar
-    informacion del conjunto de test al modelo.
-
-    Args:
-        y_train: Salarios numericos del conjunto de entrenamiento.
-        y_test: Salarios numericos del conjunto de prueba.
+    """Crea target binario usando la mediana de train como umbral (sin leakage).
 
     Returns:
-        Tupla ``(y_train_binary, y_test_binary, threshold)``:
-        - ``y_train_binary``: 1 si el salario supera la mediana de train.
-        - ``y_test_binary``: 1 si el salario supera la mediana de train.
-        - ``threshold``: valor usado como umbral (mediana de train).
+        Tupla ``(y_train_binary, y_test_binary, threshold)``.
 
     Raises:
-        TypeError: Si ``y_train`` o ``y_test`` no son ``pd.Series``.
+        TypeError: Si los argumentos no son ``pd.Series``.
     """
     if not isinstance(y_train, pd.Series) or not isinstance(y_test, pd.Series):
         raise TypeError("y_train y y_test deben ser pd.Series.")
@@ -108,23 +85,10 @@ def create_binary_target(
 def build_preprocessor(
     numeric_features: list[str], categorical_features: list[str]
 ) -> ColumnTransformer:
-    """Construye un ColumnTransformer con escalado y one-hot encoding.
-
-    - Variables numericas: ``StandardScaler`` (justificacion: SVM, Logistic
-      Regression y Ridge son sensibles a la escala).
-    - Variables categoricas: ``OneHotEncoder`` con ``handle_unknown='ignore'``
-      (justificacion: robustez frente a categorias no vistas en validacion
-      cruzada y test).
-
-    Args:
-        numeric_features: Nombres de las columnas numericas.
-        categorical_features: Nombres de las columnas categoricas.
-
-    Returns:
-        ColumnTransformer listo para integrarse en un ``Pipeline``.
+    """Crea un ColumnTransformer: StandardScaler para numéricas, OneHotEncoder para categóricas.
 
     Raises:
-        ValueError: Si alguna lista de features esta vacia.
+        ValueError: Si alguna de las listas de features está vacía.
     """
     if not numeric_features:
         raise ValueError("numeric_features no puede estar vacio.")
@@ -144,30 +108,14 @@ def build_preprocessor(
 
 
 def build_regression_pipeline(model: Any, preprocessor: ColumnTransformer) -> Pipeline:
-    """Encapsula preprocessor + modelo de regresion en un ``Pipeline``.
-
-    Args:
-        model: Estimador de regresion compatible con sklearn (ej. ``Ridge``).
-        preprocessor: ``ColumnTransformer`` construido con ``build_preprocessor``.
-
-    Returns:
-        Pipeline con pasos ``preprocessor`` y ``model``.
-    """
+    """Retorna Pipeline(preprocessor, model) para regresión."""
     return Pipeline(steps=[("preprocessor", preprocessor), ("model", model)])
 
 
 def build_classification_pipeline(
     model: Any, preprocessor: ColumnTransformer
 ) -> Pipeline:
-    """Encapsula preprocessor + modelo de clasificacion en un ``Pipeline``.
-
-    Args:
-        model: Estimador de clasificacion compatible con sklearn.
-        preprocessor: ``ColumnTransformer`` construido con ``build_preprocessor``.
-
-    Returns:
-        Pipeline con pasos ``preprocessor`` y ``model``.
-    """
+    """Retorna Pipeline(preprocessor, model) para clasificación."""
     return Pipeline(steps=[("preprocessor", preprocessor), ("model", model)])
 
 
@@ -178,20 +126,10 @@ def train_and_evaluate_regression(
     X_test: pd.DataFrame,
     y_test: pd.Series,
 ) -> dict[str, Any]:
-    """Entrena un pipeline de regresion y calcula metricas en train y test.
-
-    Metricas calculadas: MAE, RMSE, R^2 y MAPE.
-
-    Args:
-        pipeline: Pipeline con preprocesamiento + modelo de regresion.
-        X_train: Features de entrenamiento.
-        y_train: Target numerico de entrenamiento.
-        X_test: Features de test.
-        y_test: Target numerico de test.
+    """Entrena el pipeline y retorna métricas (MAE, RMSE, R2, MAPE) para train y test.
 
     Returns:
-        Dict con claves ``pipeline``, ``train`` y ``test``. Cada uno de
-        ``train`` y ``test`` contiene MAE, RMSE, R2 y MAPE.
+        Dict con claves ``pipeline``, ``train`` y ``test``.
     """
     pipeline.fit(X_train, y_train)
     y_train_pred = pipeline.predict(X_train)
@@ -219,24 +157,12 @@ def train_and_evaluate_classification(
     X_test: pd.DataFrame,
     y_test: pd.Series,
 ) -> dict[str, Any]:
-    """Entrena un pipeline de clasificacion binaria y calcula metricas.
+    """Entrena el pipeline y retorna métricas (Accuracy, Precision, Recall, F1, ROC-AUC).
 
-    Metricas calculadas: Accuracy, Precision, Recall, F1 y ROC-AUC.
-    ROC-AUC requiere que el modelo exponga ``predict_proba``; los modelos
-    incluidos en este proyecto (Logistic, SVM con ``probability=True``,
-    Random Forest, Gradient Boosting) cumplen este requisito.
-
-    Args:
-        pipeline: Pipeline con preprocesamiento + clasificador.
-        X_train: Features de entrenamiento.
-        y_train: Target binario de entrenamiento.
-        X_test: Features de test.
-        y_test: Target binario de test.
+    Requiere que el modelo exponga ``predict_proba``.
 
     Returns:
-        Dict con claves ``pipeline``, ``train`` y ``test``. Cada uno de
-        ``train`` y ``test`` contiene Accuracy, Precision, Recall, F1 y
-        ROC-AUC.
+        Dict con claves ``pipeline``, ``train`` y ``test``.
     """
     pipeline.fit(X_train, y_train)
     y_train_pred = pipeline.predict(X_train)
@@ -263,14 +189,10 @@ def train_and_evaluate_classification(
 
 
 def save_model(pipeline: Pipeline, path: str) -> None:
-    """Serializa un pipeline entrenado a disco con ``joblib.dump``.
-
-    Args:
-        pipeline: Pipeline entrenado a persistir.
-        path: Ruta destino (extension ``.joblib`` recomendada).
+    """Guarda el pipeline en disco con joblib.
 
     Raises:
-        OSError: Si no se puede escribir en la ruta indicada.
+        OSError: Si no se puede escribir en ``path``.
     """
     try:
         joblib.dump(pipeline, path)
