@@ -1,12 +1,6 @@
-"""Modulo de evaluacion de modelos supervisados.
+"""Funciones de evaluación: validación cruzada con múltiples métricas y plots diagnósticos.
 
-Funciones reutilizables para validacion cruzada con multiples metricas y
-para generar visualizaciones diagnosticas (matrices de confusion, curvas
-ROC, graficos de residuos). Usado por el notebook
-``03_model_evaluation.ipynb``.
-
-La logica de evaluacion vive aqui para mantener el notebook como capa
-de orquestacion y narracion, no de implementacion.
+Usado por ``03_model_evaluation.ipynb``.
 """
 
 from __future__ import annotations
@@ -39,9 +33,7 @@ CLASSIFICATION_SCORING = [
     "roc_auc",
 ]
 
-# Mapeos sklearn-scoring -> nombre humano en la tabla final.
-# Las metricas "neg_*" se invierten al exportar para reportarlas siempre
-# positivas, mas naturales de interpretar.
+# Renombre sklearn -> nombre humano. Las metricas en _REG_INVERT se reportan positivas (vienen como neg_*).
 _REG_RENAME = {
     "r2": "R2",
     "neg_mean_absolute_error": "MAE",
@@ -65,19 +57,11 @@ def _summarize_cv(
     rename: dict[str, str],
     invert: set[str] | None = None,
 ) -> dict[str, Any]:
-    """Convierte la salida cruda de ``cross_validate`` en un dict de medias y std.
-
-    Args:
-        cv_result: Dict retornado por ``cross_validate``.
-        scoring: Lista de claves de scoring usadas en la llamada.
-        rename: Mapeo sklearn-scoring -> nombre humano.
-        invert: Conjunto de nombres ya renombrados cuyo signo hay que invertir
-            (para las metricas que vienen como ``neg_*``).
+    """Convierte la salida de ``cross_validate`` en dict con medias y std por métrica.
 
     Returns:
-        Dict con dos sub-dicts ``train`` y ``test``; cada uno mapea
-        ``"<metrica>_mean"`` y ``"<metrica>_std"`` a un float, mas las
-        claves de nivel superior ``fit_time_mean`` y ``score_time_mean``.
+        Dict con sub-dicts ``train``/``test`` (claves ``<metrica>_mean``/``_std``)
+        más ``fit_time_mean`` y ``score_time_mean`` a nivel superior.
     """
     invert = invert or set()
     summary: dict[str, Any] = {"train": {}, "test": {}}
@@ -101,26 +85,7 @@ def cross_validate_regression(
     cv: int = 5,
     random_state: int = 42,
 ) -> dict[str, Any]:
-    """Corre validacion cruzada de regresion con multiples metricas.
-
-    Usa ``KFold(shuffle=True)`` con ``random_state`` fijo y devuelve la
-    media y desviacion estandar de R^2, MAE, RMSE y MAPE en train y test.
-    El preprocesamiento incluido en el ``Pipeline`` se reaplica en cada
-    fold (sin leakage entre folds).
-
-    Args:
-        pipeline: Pipeline de regresion (preprocesador + estimador).
-        X: Features.
-        y: Target numerico.
-        cv: Numero de folds.
-        random_state: Semilla para el shuffle del KFold.
-
-    Returns:
-        Dict con claves ``train``, ``test``, ``fit_time_mean`` y
-        ``score_time_mean``. Cada sub-dict ``train``/``test`` contiene
-        ``R2_mean``, ``R2_std``, ``MAE_mean``, ``MAE_std``, ``RMSE_mean``,
-        ``RMSE_std``, ``MAPE_mean``, ``MAPE_std``.
-    """
+    """CV de regresión con KFold(shuffle=True): R2, MAE, RMSE y MAPE en train y test."""
     splitter = KFold(n_splits=cv, shuffle=True, random_state=random_state)
     cv_result = cross_validate(
         pipeline,
@@ -141,24 +106,7 @@ def cross_validate_classification(
     cv: int = 5,
     random_state: int = 42,
 ) -> dict[str, Any]:
-    """Corre validacion cruzada de clasificacion binaria con multiples metricas.
-
-    Usa ``StratifiedKFold(shuffle=True)`` con ``random_state`` fijo y
-    devuelve la media y desviacion estandar de Accuracy, Precision,
-    Recall, F1 y ROC-AUC en train y test.
-
-    Args:
-        pipeline: Pipeline de clasificacion (preprocesador + estimador).
-        X: Features.
-        y: Target binario.
-        cv: Numero de folds.
-        random_state: Semilla para el shuffle del StratifiedKFold.
-
-    Returns:
-        Dict con claves ``train``, ``test``, ``fit_time_mean`` y
-        ``score_time_mean``. Cada sub-dict ``train``/``test`` contiene
-        ``<metrica>_mean`` y ``<metrica>_std`` para cada metrica.
-    """
+    """CV de clasificación binaria con StratifiedKFold: Accuracy, Precision, Recall, F1 y ROC-AUC."""
     splitter = StratifiedKFold(n_splits=cv, shuffle=True, random_state=random_state)
     cv_result = cross_validate(
         pipeline,
@@ -177,23 +125,10 @@ def build_comparison_table(
     sort_by: str,
     ascending: bool = False,
 ) -> pd.DataFrame:
-    """Construye un DataFrame comparativo a partir de varios resultados de CV.
-
-    Aplana el dict anidado producido por ``cross_validate_*`` en una sola
-    fila por modelo, con columnas ``<metrica>_(mean|std)_(train|test)``,
-    ``gap_<metrica>`` (train_mean - test_mean) y los tiempos.
-
-    Args:
-        cv_results_dict: Mapa ``nombre_modelo -> resultado de cross_validate_*``.
-        sort_by: Nombre de la columna por la que ordenar (ej. ``"R2_mean_test"``).
-        ascending: Direccion del orden.
-
-    Returns:
-        DataFrame con un modelo por fila, ordenado segun ``sort_by``.
+    """Aplana resultados de varios CV en una tabla con columnas ``<metrica>_(mean|std)_(train|test)`` y ``gap_<metrica>``.
 
     Raises:
-        ValueError: Si ``cv_results_dict`` esta vacio o ``sort_by`` no es
-            una columna del DataFrame resultante.
+        ValueError: Si ``cv_results_dict`` está vacío o ``sort_by`` no es columna del DataFrame.
     """
     if not cv_results_dict:
         raise ValueError("cv_results_dict no puede estar vacio.")
@@ -227,19 +162,7 @@ def plot_confusion_matrices(
     y_test: pd.Series,
     figsize: tuple[int, int] = (12, 10),
 ) -> plt.Figure:
-    """Dibuja una grid 2x2 de matrices de confusion para 4 modelos.
-
-    Args:
-        models_dict: Mapa ``nombre_modelo -> pipeline_entrenado`` (cargado
-            por ejemplo desde ``joblib``). Se esperan 4 modelos para
-            llenar la grid 2x2; si hay mas o menos, la grid se ajusta.
-        X_test: Features de test.
-        y_test: Target binario de test.
-        figsize: Tamano de la figura.
-
-    Returns:
-        El objeto ``Figure``.
-    """
+    """Grid de matrices de confusión (una por modelo), con valores anotados."""
     n = len(models_dict)
     ncols = 2 if n > 1 else 1
     nrows = (n + ncols - 1) // ncols
@@ -260,8 +183,15 @@ def plot_confusion_matrices(
         for i in range(cm.shape[0]):
             for j in range(cm.shape[1]):
                 color = "white" if cm[i, j] > cm.max() / 2 else "black"
-                ax.text(j, i, str(cm[i, j]), ha="center", va="center",
-                        color=color, fontsize=12)
+                ax.text(
+                    j,
+                    i,
+                    str(cm[i, j]),
+                    ha="center",
+                    va="center",
+                    color=color,
+                    fontsize=12,
+                )
         fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
 
     for ax in axes_flat[n:]:
@@ -278,35 +208,30 @@ def plot_roc_curves(
     y_test: pd.Series,
     figsize: tuple[int, int] = (9, 7),
 ) -> plt.Figure:
-    """Dibuja las curvas ROC de varios modelos superpuestas, con AUC en la leyenda.
-
-    Args:
-        models_dict: Mapa ``nombre_modelo -> pipeline_entrenado``. Los
-            modelos deben exponer ``predict_proba``.
-        X_test: Features de test.
-        y_test: Target binario de test.
-        figsize: Tamano de la figura.
-
-    Returns:
-        El objeto ``Figure``.
+    """Curvas ROC superpuestas de varios modelos, con AUC en la leyenda.
 
     Raises:
-        AttributeError: Si algun pipeline no implementa ``predict_proba``.
+        AttributeError: Si algún pipeline no implementa ``predict_proba``.
     """
     fig, ax = plt.subplots(figsize=figsize)
     for name, model in models_dict.items():
         if not hasattr(model, "predict_proba"):
             raise AttributeError(
-                f"El modelo '{name}' no expone predict_proba; no se puede "
-                "calcular ROC."
+                f"El modelo '{name}' no expone predict_proba; no se puede calcular ROC."
             )
         proba = model.predict_proba(X_test)[:, 1]
         fpr, tpr, _ = roc_curve(y_test, proba)
         roc_auc = auc(fpr, tpr)
         ax.plot(fpr, tpr, lw=2, label=f"{name} (AUC = {roc_auc:.3f})")
 
-    ax.plot([0, 1], [0, 1], color="gray", linestyle="--", lw=1,
-            label="Aleatorio (AUC = 0.5)")
+    ax.plot(
+        [0, 1],
+        [0, 1],
+        color="gray",
+        linestyle="--",
+        lw=1,
+        label="Aleatorio (AUC = 0.5)",
+    )
     ax.set_xlim([0.0, 1.0])
     ax.set_ylim([0.0, 1.02])
     ax.set_xlabel("Tasa de falsos positivos (FPR)")
@@ -324,21 +249,7 @@ def plot_residuals(
     y_test: pd.Series,
     figsize: tuple[int, int] = (12, 10),
 ) -> plt.Figure:
-    """Dibuja una grid 2x2 de graficos de residuos (y_pred vs residual).
-
-    Un residuo bien comportado se distribuye aleatoriamente alrededor de
-    cero a lo largo de todo el rango de prediccion. Patrones (curvatura,
-    embudo, sesgo) sugieren mal-especificacion del modelo.
-
-    Args:
-        models_dict: Mapa ``nombre_modelo -> pipeline_entrenado``.
-        X_test: Features de test.
-        y_test: Target numerico de test.
-        figsize: Tamano de la figura.
-
-    Returns:
-        El objeto ``Figure``.
-    """
+    """Grid de gráficos de residuos (y_pred vs residual) para diagnosticar mal-especificación."""
     n = len(models_dict)
     ncols = 2 if n > 1 else 1
     nrows = (n + ncols - 1) // ncols
