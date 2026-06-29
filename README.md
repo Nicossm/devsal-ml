@@ -118,6 +118,12 @@ Todas las dependencias vienen preinstaladas en Colab.
 | Nicolás Osses | Setup, limpieza de datos y modelado |
 | Rolando Paredes | Transformación y pipeline |
 
+
+
+## Video Presentación 
+
+https://drive.google.com/drive/folders/1x8dd1PyCLKWk1BO3jwZ9LuPju0z1jVsQ?usp=sharing
+
 ---
 
 *Instituto Profesional Duoc UC — SCY1101 Programación para la Ciencia de Datos*
